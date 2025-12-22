@@ -1,25 +1,30 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import TaskColumn from './components/TaskColumn';
-import TimerPanel from './components/TimerPanel';
-import DeleteModal from './components/DeleteModal';
-import AuthPage from './components/AuthPage';
-import { isOverdue } from './utils/taskUtils';
-import { getTodayISO } from './utils/dateUtils';
-import { supabase } from './supabaseClient';
+import React, { useState, useEffect, useMemo } from "react";
+import TaskColumn from "./components/TaskColumn";
+import TimerPanel from "./components/TimerPanel";
+import DeleteModal from "./components/DeleteModal";
+import AuthPage from "./components/AuthPage";
+import UsernameSetup from "./components/UsernameSetup";
+import UserMenu from "./components/UserMenu";
+import { isOverdue } from "./utils/taskUtils";
+import { getTodayISO } from "./utils/dateUtils";
+import { supabase } from "./supabaseClient";
 
 const COLUMNS = [
-  { id: 'today', label: 'TODAY' },
-  { id: 'week', label: 'THIS WEEK' },
-  { id: 'dump', label: 'DUMPING GROUND' },
+  { id: "today", label: "TODAY" },
+  { id: "week", label: "THIS WEEK" },
+  { id: "dump", label: "DUMPING GROUND" },
 ];
 
 export default function App() {
   const [user, setUser] = useState(null);
   const [authChecked, setAuthChecked] = useState(false);
 
+  const [profile, setProfile] = useState(null);
+  const [profileLoading, setProfileLoading] = useState(false);
+
   const [tasks, setTasks] = useState([]);
   const [tasksLoading, setTasksLoading] = useState(false);
-  const [tasksError, setTasksError] = useState('');
+  const [tasksError, setTasksError] = useState("");
   const [pendingDelete, setPendingDelete] = useState(null);
 
   // ---- AUTH STATE ----
@@ -30,26 +35,22 @@ export default function App() {
       try {
         const {
           data: { session },
-          error,
-        } = await supabase.auth.getSession(); // get current session :contentReference[oaicite:6]{index=6}
+        } = await supabase.auth.getSession();
 
-        if (error) {
-          console.error('Error getting session', error);
-        } else {
-          setUser(session?.user ?? null);
-        }
+        setUser(session?.user ?? null);
+      } catch (error) {
+        console.error("Error getting session", error);
       } finally {
         setAuthChecked(true);
       }
 
-      const { data } = supabase.auth.onAuthStateChange(
-        (_event, session) => {
-          setUser(session?.user ?? null);
-          if (!session) {
-            setTasks([]);
-          }
+      const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+        setUser(session?.user ?? null);
+        if (!session) {
+          setTasks([]);
+          setProfile(null);
         }
-      ); // listen to auth changes :contentReference[oaicite:7]{index=7}
+      });
 
       subscription = data.subscription;
     };
@@ -60,6 +61,44 @@ export default function App() {
       if (subscription) subscription.unsubscribe();
     };
   }, []);
+
+  // ---- PROFILE (USERNAME + EMAIL) ----
+  useEffect(() => {
+    if (!user) {
+      setProfile(null);
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadProfile = async () => {
+      setProfileLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("username, email")
+          .eq("id", user.id)
+          .maybeSingle();
+
+        if (cancelled) return;
+
+        // PGRST116 = "No rows found"
+        if (error && error.code !== "PGRST116") {
+          console.error("Error loading profile", error);
+        }
+
+        setProfile(data || null);
+      } finally {
+        if (!cancelled) setProfileLoading(false);
+      }
+    };
+
+    loadProfile();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
 
   // ---- LOAD TASKS WHEN USER CHANGES ----
   useEffect(() => {
@@ -72,29 +111,29 @@ export default function App() {
 
     const loadTasks = async () => {
       setTasksLoading(true);
-      setTasksError('');
+      setTasksError("");
       try {
         const { data, error } = await supabase
-          .from('tasks')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: true });
+          .from("tasks")
+          .select("*")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: true });
+
+        if (cancelled) return;
 
         if (error) {
-          console.error('Error loading tasks', error);
-          if (!cancelled) {
-            setTasksError('FAILED TO LOAD TASKS FROM MACHINE.');
-            setTasks([]);
-          }
+          console.error("Error loading tasks", error);
+          setTasksError("FAILED TO LOAD TASKS FROM MACHINE.");
+          setTasks([]);
           return;
         }
 
-        if (!cancelled && data) {
+        if (data) {
           const normalized = data.map((row) => ({
             id: row.id,
             title: row.title,
-            description: row.description || '',
-            column: row.lane, // map DB lane -> UI column
+            description: row.description || "",
+            column: row.lane,
             dueDate: row.due_date,
             createdAt: row.created_at,
             urgent: row.urgent,
@@ -114,39 +153,38 @@ export default function App() {
     };
   }, [user]);
 
-  // ---- TASK MUTATIONS (CRUD) ----
-
+  // ---- TASK MUTATIONS ----
   const addTask = async (columnId, title, dueDate) => {
     if (!user) return;
     const trimmed = title.trim();
     if (!trimmed) return;
 
-    setTasksError('');
+    setTasksError("");
 
     const { data, error } = await supabase
-      .from('tasks')
+      .from("tasks")
       .insert({
         user_id: user.id,
         title: trimmed,
-        description: '',
+        description: "",
         lane: columnId,
         due_date: dueDate || null,
-        urgent: columnId === 'today',
+        urgent: columnId === "today",
         done: false,
       })
       .select()
       .single();
 
     if (error) {
-      console.error('Error creating task', error);
-      setTasksError('FAILED TO CREATE TASK.');
+      console.error("Error creating task", error);
+      setTasksError("FAILED TO CREATE TASK.");
       return;
     }
 
     const newTask = {
       id: data.id,
       title: data.title,
-      description: data.description || '',
+      description: data.description || "",
       column: data.lane,
       dueDate: data.due_date,
       createdAt: data.created_at,
@@ -160,34 +198,28 @@ export default function App() {
   const moveTask = async (taskId, newColumn) => {
     if (!user) return;
 
-    setTasksError('');
+    setTasksError("");
 
     const { data, error } = await supabase
-      .from('tasks')
+      .from("tasks")
       .update({
         lane: newColumn,
-        urgent: newColumn === 'today',
+        urgent: newColumn === "today",
       })
-      .eq('id', taskId)
-      .eq('user_id', user.id)
+      .eq("id", taskId)
+      .eq("user_id", user.id)
       .select()
       .single();
 
     if (error) {
-      console.error('Error moving task', error);
-      setTasksError('FAILED TO MOVE TASK.');
+      console.error("Error moving task", error);
+      setTasksError("FAILED TO MOVE TASK.");
       return;
     }
 
     setTasks((prev) =>
       prev.map((t) =>
-        t.id === taskId
-          ? {
-              ...t,
-              column: data.lane,
-              urgent: data.urgent,
-            }
-          : t
+        t.id === taskId ? { ...t, column: data.lane, urgent: data.urgent } : t
       )
     );
   };
@@ -195,29 +227,27 @@ export default function App() {
   const toggleDone = async (taskId) => {
     if (!user) return;
 
-    setTasksError('');
+    setTasksError("");
 
     const current = tasks.find((t) => t.id === taskId);
     if (!current) return;
 
     const { data, error } = await supabase
-      .from('tasks')
+      .from("tasks")
       .update({ done: !current.done })
-      .eq('id', taskId)
-      .eq('user_id', user.id)
+      .eq("id", taskId)
+      .eq("user_id", user.id)
       .select()
       .single();
 
     if (error) {
-      console.error('Error toggling done', error);
-      setTasksError('FAILED TO UPDATE TASK.');
+      console.error("Error toggling done", error);
+      setTasksError("FAILED TO UPDATE TASK.");
       return;
     }
 
     setTasks((prev) =>
-      prev.map((t) =>
-        t.id === taskId ? { ...t, done: data.done } : t
-      )
+      prev.map((t) => (t.id === taskId ? { ...t, done: data.done } : t))
     );
   };
 
@@ -229,17 +259,17 @@ export default function App() {
     if (!user || !pendingDelete) return;
     const id = pendingDelete.id;
 
-    setTasksError('');
+    setTasksError("");
 
     const { error } = await supabase
-      .from('tasks')
+      .from("tasks")
       .delete()
-      .eq('id', id)
-      .eq('user_id', user.id);
+      .eq("id", id)
+      .eq("user_id", user.id);
 
     if (error) {
-      console.error('Error deleting task', error);
-      setTasksError('FAILED TO DELETE TASK.');
+      console.error("Error deleting task", error);
+      setTasksError("FAILED TO DELETE TASK.");
       return;
     }
 
@@ -250,7 +280,7 @@ export default function App() {
   const cancelDelete = () => setPendingDelete(null);
 
   const handleLogout = async () => {
-    await supabase.auth.signOut(); // standard sign-out :contentReference[oaicite:8]{index=8}
+    await supabase.auth.signOut();
   };
 
   const stats = useMemo(() => {
@@ -260,20 +290,25 @@ export default function App() {
     return { total, done, overdue };
   }, [tasks]);
 
-  // ---- RENDER ----
+  // ---- RENDER GATES ----
 
   if (!authChecked) {
-    return (
-      <div className="app-loading">
-        BOOTING DEADLINE MACHINE...
-      </div>
-    );
+    return <div className="app-loading">BOOTING DEADLINE MACHINE...</div>;
   }
 
   if (!user) {
     return <AuthPage />;
   }
 
+  if (!profile && profileLoading) {
+    return <div className="app-loading">SYNCING IDENTITY...</div>;
+  }
+
+  if (!profile && !profileLoading) {
+    return <UsernameSetup user={user} onComplete={setProfile} />;
+  }
+
+  // ---- MAIN APP ----
   return (
     <div className="app">
       <header className="app-header">
@@ -288,20 +323,9 @@ export default function App() {
           <div className="meta-chip">
             DONE: {stats.done}/{stats.total}
           </div>
-          <div className="meta-chip meta-chip-date">
-            {getTodayISO()}
-          </div>
+          <div className="meta-chip meta-chip-date">{getTodayISO()}</div>
           <div className="app-header-user">
-            <span className="app-header-email">
-              {user.email || 'ANONYMOUS UNIT'}
-            </span>
-            <button
-              type="button"
-              className="app-header-logout"
-              onClick={handleLogout}
-            >
-              LOG OUT
-            </button>
+            <UserMenu profile={profile} onLogout={handleLogout} />
           </div>
         </div>
       </header>
@@ -313,19 +337,13 @@ export default function App() {
               SYNCING WITH MACHINE STORAGE...
             </div>
           )}
-          {tasksError && (
-            <div className="board-error-strip">
-              {tasksError}
-            </div>
-          )}
+          {tasksError && <div className="board-error-strip">{tasksError}</div>}
 
           {COLUMNS.map((col) => (
             <TaskColumn
               key={col.id}
               column={col}
-              tasks={tasks.filter(
-                (t) => t.column === col.id
-              )}
+              tasks={tasks.filter((t) => t.column === col.id)}
               onAddTask={addTask}
               onMoveTask={moveTask}
               onToggleDone={toggleDone}

@@ -1,48 +1,91 @@
-import React, { useState } from "react";
-import { supabase } from "../supabaseClient";
+import React, { useState } from 'react';
+import { supabase } from '../supabaseClient';
 
 export default function AuthPage() {
-  const [mode, setMode] = useState("login"); // 'login' | 'signup'
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [mode, setMode] = useState('login'); // 'login' | 'signup'
+  const [identifier, setIdentifier] = useState(''); // login: email or username
+  const [email, setEmail] = useState('');           // signup email
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [info, setInfo] = useState("");
+  const [error, setError] = useState('');
+  const [info, setInfo] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
-    setInfo("");
+    setError('');
+    setInfo('');
 
-    if (!email || !password) {
-      setError("EMAIL AND PASSWORD REQUIRED.");
+    // SIGNUP FLOW (email + password only)
+    if (mode === 'signup') {
+      if (!email || !password) {
+        setError('EMAIL AND PASSWORD REQUIRED.');
+        return;
+      }
+
+      setLoading(true);
+      try {
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+        });
+
+        if (error) throw error;
+
+        setInfo(
+          'CHECK YOUR INBOX. CONFIRM EMAIL TO ENTER THE MACHINE.'
+        );
+      } catch (err) {
+        setError(
+          err?.message ||
+            'SIGNUP FAILED. MACHINE REJECTED YOUR CREDENTIALS.'
+        );
+      } finally {
+        setLoading(false);
+      }
+
+      return;
+    }
+
+    // LOGIN FLOW (email OR username)
+    const id = identifier.trim();
+    if (!id || !password) {
+      setError('USERNAME/EMAIL AND PASSWORD REQUIRED.');
       return;
     }
 
     setLoading(true);
     try {
-      if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-        }); // email+password signup :contentReference[oaicite:4]{index=4}
+      let emailToUse = id;
 
-        if (error) throw error;
+      // If it doesn't look like an email, treat it as username
+      if (!id.includes('@')) {
+        const { data, error: rpcError } = await supabase.rpc(
+          'get_email_for_username',
+          { p_username: id }
+        );
 
-        // Depending on your Supabase settings, user might need to confirm via email.
-        setInfo("CHECK YOUR INBOX. THIS MACHINE DEMANDS CONFIRMATION.");
-      } else {
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        }); // password sign-in :contentReference[oaicite:5]{index=5}
+        if (rpcError) {
+          console.error(rpcError);
+          throw new Error('FAILED TO RESOLVE USERNAME.');
+        }
 
-        if (error) throw error;
-        // Session is handled globally; App will rerender into the board.
+        if (!data) {
+          throw new Error('UNKNOWN USERNAME.');
+        }
+
+        emailToUse = data;
       }
+
+      const { error } = await supabase.auth.signInWithPassword({
+        email: emailToUse,
+        password,
+      });
+
+      if (error) throw error;
     } catch (err) {
       setError(
-        err?.message || "AUTH FAILURE. MACHINE REJECTED YOUR CREDENTIALS."
+        err?.message ||
+          'LOGIN FAILED. MACHINE REJECTED YOUR CREDENTIALS.'
       );
     } finally {
       setLoading(false);
@@ -52,8 +95,9 @@ export default function AuthPage() {
   const toggleMode = (next) => {
     if (next === mode) return;
     setMode(next);
-    setError("");
-    setInfo("");
+    setError('');
+    setInfo('');
+    setPassword('');
   };
 
   return (
@@ -71,39 +115,55 @@ export default function AuthPage() {
           <button
             type="button"
             className={
-              mode === "login"
-                ? "auth-toggle-button auth-toggle-button-active"
-                : "auth-toggle-button"
+              mode === 'login'
+                ? 'auth-toggle-button auth-toggle-button-active'
+                : 'auth-toggle-button'
             }
-            onClick={() => toggleMode("login")}
+            onClick={() => toggleMode('login')}
           >
             LOG IN
           </button>
           <button
             type="button"
             className={
-              mode === "signup"
-                ? "auth-toggle-button auth-toggle-button-active"
-                : "auth-toggle-button"
+              mode === 'signup'
+                ? 'auth-toggle-button auth-toggle-button-active'
+                : 'auth-toggle-button'
             }
-            onClick={() => toggleMode("signup")}
+            onClick={() => toggleMode('signup')}
           >
             REGISTER
           </button>
         </div>
 
         <form className="auth-form" onSubmit={handleSubmit}>
-          <label className="auth-label">
-            <span className="auth-label-text">EMAIL</span>
-            <input
-              type="email"
-              className="auth-input"
-              placeholder="you@domain.com"
-              autoComplete="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-          </label>
+          {mode === 'login' ? (
+            <label className="auth-label">
+              <span className="auth-label-text">
+                EMAIL OR USERNAME
+              </span>
+              <input
+                type="text"
+                className="auth-input"
+                placeholder="you@domain.com or username"
+                autoComplete="username"
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
+              />
+            </label>
+          ) : (
+            <label className="auth-label">
+              <span className="auth-label-text">EMAIL</span>
+              <input
+                type="email"
+                className="auth-input"
+                placeholder="you@domain.com"
+                autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </label>
+          )}
 
           <label className="auth-label">
             <span className="auth-label-text">PASSWORD</span>
@@ -112,7 +172,9 @@ export default function AuthPage() {
               className="auth-input"
               placeholder="••••••••"
               autoComplete={
-                mode === "signup" ? "new-password" : "current-password"
+                mode === 'signup'
+                  ? 'new-password'
+                  : 'current-password'
               }
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -120,7 +182,9 @@ export default function AuthPage() {
           </label>
 
           {error && <div className="auth-error-strip">{error}</div>}
-          {info && !error && <div className="auth-info-strip">{info}</div>}
+          {info && !error && (
+            <div className="auth-info-strip">{info}</div>
+          )}
 
           <button
             type="submit"
@@ -128,10 +192,10 @@ export default function AuthPage() {
             disabled={loading}
           >
             {loading
-              ? "PROCESSING..."
-              : mode === "login"
-              ? "ENTER MACHINE"
-              : "CREATE ACCOUNT"}
+              ? 'PROCESSING...'
+              : mode === 'login'
+              ? 'ENTER MACHINE'
+              : 'CREATE ACCOUNT'}
           </button>
         </form>
 
@@ -144,3 +208,4 @@ export default function AuthPage() {
     </div>
   );
 }
+
