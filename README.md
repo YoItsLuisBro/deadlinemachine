@@ -1,16 +1,72 @@
-# React + Vite
+# DEADLINE MACHINE — Task & Focus Board
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A brutalist to-do + timer app that behaves like a cold, unforgiving machine.
 
-Currently, two official plugins are available:
+- Heavy black + off-white + warning red palette  
+- Hard grids, chunky borders, unapologetic labels: **OVERDUE**, **DO IT NOW**  
+- Columns: **TODAY / THIS WEEK / DUMPING GROUND**  
+- Massive numeric timer, tiny labels  
+- Email/password login backed by **Supabase**  
+- Deployed easily on **Vercel**
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+---
 
-## React Compiler
+## Tech Stack
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **Frontend:** React + Vite
+- **Styling:** Custom CSS (brutalist / neo-brutalist)
+- **Auth & DB:** Supabase (email/password auth + row-level security)
+- **Deployment:** Vercel
 
-## Expanding the ESLint configuration
+---
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Features
+
+- **Authentication**
+  - Email + password signup and login (Supabase Auth)
+  - Brutalist login screen with harsh copy and bold layout
+  - Auth state persisted via Supabase session
+
+- **Task Board**
+  - 3 lanes: `TODAY`, `THIS WEEK`, `DUMPING GROUND`
+  - Tasks have: title, description (placeholder for now), lane, due date (optional), urgent flag, done flag
+  - Visual tags:
+    - `OVERDUE` (past due, not done)
+    - `DO IT NOW` (urgent or due today)
+    - `DONE` (completed tasks)
+  - Move tasks between lanes with “MOVE → TODAY / WEEK / DUMP”
+  - Brutal delete confirmation modal:
+    - Giant “YES, OBLITERATE”
+    - Tiny “no, keep it”
+
+- **Timer Panel (Focus Engine)**
+  - Large MM:SS display with tiny `MIN` / `SEC` labels
+  - Adjustable duration in minutes
+  - Start / Pause / Reset controls
+  - Harsh end-of-timer message: “TIME’S UP. STOP HESITATING.”
+
+---
+
+## Project Structure
+
+Example structure (simplified):
+
+```text
+src/
+├─ App.jsx
+├─ main.jsx
+├─ styles.css
+├─ supabaseClient.js
+├─ components/
+│  ├─ AuthPage.jsx
+│  ├─ TaskColumn.jsx
+│  ├─ TaskCard.jsx
+│  ├─ TimerPanel.jsx
+│  └─ DeleteModal.jsx
+└─ utils/
+   ├─ dateUtils.js
+   └─ taskUtils.js
+```
+
+---
+
