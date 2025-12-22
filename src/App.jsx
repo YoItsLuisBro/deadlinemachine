@@ -1,58 +1,223 @@
-import React, { useState, useEffect, useMemo } from "react";
-import TaskColumn from "./components/TaskColumn";
-import TimerPanel from "./components/TimerPanel";
-import DeleteModal from "./components/DeleteModal";
-import { loadInitialTasks, isOverdue } from "./utils/taskUtils";
-import { getTodayISO } from "./utils/dateUtils";
+import React, { useState, useEffect, useMemo } from 'react';
+import TaskColumn from './components/TaskColumn';
+import TimerPanel from './components/TimerPanel';
+import DeleteModal from './components/DeleteModal';
+import AuthPage from './components/AuthPage';
+import { isOverdue } from './utils/taskUtils';
+import { getTodayISO } from './utils/dateUtils';
+import { supabase } from './supabaseClient';
 
 const COLUMNS = [
-  { id: "today", label: "TODAY" },
-  { id: "week", label: "THIS WEEK" },
-  { id: "dump", label: "DUMPING GROUND" },
+  { id: 'today', label: 'TODAY' },
+  { id: 'week', label: 'THIS WEEK' },
+  { id: 'dump', label: 'DUMPING GROUND' },
 ];
 
-function App() {
-  const [tasks, setTasks] = useState(loadInitialTasks);
+export default function App() {
+  const [user, setUser] = useState(null);
+  const [authChecked, setAuthChecked] = useState(false);
+
+  const [tasks, setTasks] = useState([]);
+  const [tasksLoading, setTasksLoading] = useState(false);
+  const [tasksError, setTasksError] = useState('');
   const [pendingDelete, setPendingDelete] = useState(null);
 
+  // ---- AUTH STATE ----
   useEffect(() => {
-    try {
-      window.localStorage.setItem(
-        "deadline-machine-tasks-v1",
-        JSON.stringify(tasks)
-      );
-    } catch (e) {
-      console.warn("Failed to save tasks", e);
-    }
-  }, [tasks]);
+    let subscription;
 
-  const addTask = (columnId, title, dueDate) => {
+    const initAuth = async () => {
+      try {
+        const {
+          data: { session },
+          error,
+        } = await supabase.auth.getSession(); // get current session :contentReference[oaicite:6]{index=6}
+
+        if (error) {
+          console.error('Error getting session', error);
+        } else {
+          setUser(session?.user ?? null);
+        }
+      } finally {
+        setAuthChecked(true);
+      }
+
+      const { data } = supabase.auth.onAuthStateChange(
+        (_event, session) => {
+          setUser(session?.user ?? null);
+          if (!session) {
+            setTasks([]);
+          }
+        }
+      ); // listen to auth changes :contentReference[oaicite:7]{index=7}
+
+      subscription = data.subscription;
+    };
+
+    initAuth();
+
+    return () => {
+      if (subscription) subscription.unsubscribe();
+    };
+  }, []);
+
+  // ---- LOAD TASKS WHEN USER CHANGES ----
+  useEffect(() => {
+    if (!user) {
+      setTasks([]);
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadTasks = async () => {
+      setTasksLoading(true);
+      setTasksError('');
+      try {
+        const { data, error } = await supabase
+          .from('tasks')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: true });
+
+        if (error) {
+          console.error('Error loading tasks', error);
+          if (!cancelled) {
+            setTasksError('FAILED TO LOAD TASKS FROM MACHINE.');
+            setTasks([]);
+          }
+          return;
+        }
+
+        if (!cancelled && data) {
+          const normalized = data.map((row) => ({
+            id: row.id,
+            title: row.title,
+            description: row.description || '',
+            column: row.lane, // map DB lane -> UI column
+            dueDate: row.due_date,
+            createdAt: row.created_at,
+            urgent: row.urgent,
+            done: row.done,
+          }));
+          setTasks(normalized);
+        }
+      } finally {
+        if (!cancelled) setTasksLoading(false);
+      }
+    };
+
+    loadTasks();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+
+  // ---- TASK MUTATIONS (CRUD) ----
+
+  const addTask = async (columnId, title, dueDate) => {
+    if (!user) return;
     const trimmed = title.trim();
     if (!trimmed) return;
 
+    setTasksError('');
+
+    const { data, error } = await supabase
+      .from('tasks')
+      .insert({
+        user_id: user.id,
+        title: trimmed,
+        description: '',
+        lane: columnId,
+        due_date: dueDate || null,
+        urgent: columnId === 'today',
+        done: false,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating task', error);
+      setTasksError('FAILED TO CREATE TASK.');
+      return;
+    }
+
     const newTask = {
-      id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
-      title: trimmed,
-      description: "",
-      column: columnId,
-      dueDate: dueDate || null,
-      createdAt: new Date().toISOString(),
-      urgent: columnId === "today",
-      done: false,
+      id: data.id,
+      title: data.title,
+      description: data.description || '',
+      column: data.lane,
+      dueDate: data.due_date,
+      createdAt: data.created_at,
+      urgent: data.urgent,
+      done: data.done,
     };
 
     setTasks((prev) => [...prev, newTask]);
   };
 
-  const moveTask = (taskId, newColumn) => {
+  const moveTask = async (taskId, newColumn) => {
+    if (!user) return;
+
+    setTasksError('');
+
+    const { data, error } = await supabase
+      .from('tasks')
+      .update({
+        lane: newColumn,
+        urgent: newColumn === 'today',
+      })
+      .eq('id', taskId)
+      .eq('user_id', user.id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error moving task', error);
+      setTasksError('FAILED TO MOVE TASK.');
+      return;
+    }
+
     setTasks((prev) =>
-      prev.map((t) => (t.id === taskId ? { ...t, column: newColumn } : t))
+      prev.map((t) =>
+        t.id === taskId
+          ? {
+              ...t,
+              column: data.lane,
+              urgent: data.urgent,
+            }
+          : t
+      )
     );
   };
 
-  const toggleDone = (taskId) => {
+  const toggleDone = async (taskId) => {
+    if (!user) return;
+
+    setTasksError('');
+
+    const current = tasks.find((t) => t.id === taskId);
+    if (!current) return;
+
+    const { data, error } = await supabase
+      .from('tasks')
+      .update({ done: !current.done })
+      .eq('id', taskId)
+      .eq('user_id', user.id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error toggling done', error);
+      setTasksError('FAILED TO UPDATE TASK.');
+      return;
+    }
+
     setTasks((prev) =>
-      prev.map((t) => (t.id === taskId ? { ...t, done: !t.done } : t))
+      prev.map((t) =>
+        t.id === taskId ? { ...t, done: data.done } : t
+      )
     );
   };
 
@@ -60,14 +225,33 @@ function App() {
     setPendingDelete(task);
   };
 
-  const confirmDelete = () => {
-    if (!pendingDelete) return;
+  const confirmDelete = async () => {
+    if (!user || !pendingDelete) return;
     const id = pendingDelete.id;
+
+    setTasksError('');
+
+    const { error } = await supabase
+      .from('tasks')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', user.id);
+
+    if (error) {
+      console.error('Error deleting task', error);
+      setTasksError('FAILED TO DELETE TASK.');
+      return;
+    }
+
     setTasks((prev) => prev.filter((t) => t.id !== id));
     setPendingDelete(null);
   };
 
   const cancelDelete = () => setPendingDelete(null);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut(); // standard sign-out :contentReference[oaicite:8]{index=8}
+  };
 
   const stats = useMemo(() => {
     const total = tasks.length;
@@ -75,6 +259,20 @@ function App() {
     const overdue = tasks.filter(isOverdue).length;
     return { total, done, overdue };
   }, [tasks]);
+
+  // ---- RENDER ----
+
+  if (!authChecked) {
+    return (
+      <div className="app-loading">
+        BOOTING DEADLINE MACHINE...
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <AuthPage />;
+  }
 
   return (
     <div className="app">
@@ -90,17 +288,44 @@ function App() {
           <div className="meta-chip">
             DONE: {stats.done}/{stats.total}
           </div>
-          <div className="meta-chip meta-chip-date">{getTodayISO()}</div>
+          <div className="meta-chip meta-chip-date">
+            {getTodayISO()}
+          </div>
+          <div className="app-header-user">
+            <span className="app-header-email">
+              {user.email || 'ANONYMOUS UNIT'}
+            </span>
+            <button
+              type="button"
+              className="app-header-logout"
+              onClick={handleLogout}
+            >
+              LOG OUT
+            </button>
+          </div>
         </div>
       </header>
 
       <main className="app-main">
         <section className="board">
+          {tasksLoading && (
+            <div className="board-status-strip">
+              SYNCING WITH MACHINE STORAGE...
+            </div>
+          )}
+          {tasksError && (
+            <div className="board-error-strip">
+              {tasksError}
+            </div>
+          )}
+
           {COLUMNS.map((col) => (
             <TaskColumn
               key={col.id}
               column={col}
-              tasks={tasks.filter((t) => t.column === col.id)}
+              tasks={tasks.filter(
+                (t) => t.column === col.id
+              )}
               onAddTask={addTask}
               onMoveTask={moveTask}
               onToggleDone={toggleDone}
@@ -124,5 +349,3 @@ function App() {
     </div>
   );
 }
-
-export default App;
