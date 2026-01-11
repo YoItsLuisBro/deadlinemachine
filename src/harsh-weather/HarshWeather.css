@@ -1,0 +1,501 @@
+/* Root wrapper for HarshWeather – everything lives inside .hw-root */
+.hw-root {
+  --bg: #0b0b0b;
+  --fg: #e9e9e9;
+  --muted: #a8a8a8;
+  --line: #2a2a2a;
+  --hard: #ffffff;
+  --danger: #ff2d2d;
+  --acid: #00ff7f;
+
+  --pad: 14px;
+  --radius: 0px;
+
+  font-synthesis: none;
+  text-rendering: geometricPrecision;
+
+  background: var(--bg);
+  color: var(--fg);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
+}
+
+/* Limit box-sizing & form resets to inside HarshWeather only */
+.hw-root *,
+.hw-root *::before,
+.hw-root *::after {
+  box-sizing: border-box;
+}
+
+.hw-root button,
+.hw-root input {
+  font: inherit;
+  letter-spacing: 0.02em;
+}
+
+/* LAYOUT SHELL */
+
+.hw-root .shell {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 18px;
+}
+
+.hw-root .topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  border: 2px solid var(--hard);
+  padding: var(--pad);
+}
+
+.hw-root .brandTitle {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.hw-root .brandSub {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--muted);
+  letter-spacing: 0.12em;
+}
+
+.hw-root .controls {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+/* SWITCHES */
+
+.hw-root .switch {
+  display: inline-flex;
+  border: 2px solid var(--hard);
+}
+
+.hw-root .switchBtn {
+  padding: 12px 18px;
+  background: transparent;
+  color: var(--fg);
+  border: 0;
+  border-right: 2px solid var(--hard);
+  font-size: 18px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.hw-root .switchBtn:last-child {
+  border-right: 0;
+}
+
+.hw-root .switchBtn.on {
+  background: var(--hard);
+  color: var(--bg);
+}
+
+.hw-root .brutalBtn {
+  padding: 12px 14px;
+  border: 2px solid var(--danger);
+  background: transparent;
+  color: var(--danger);
+  font-weight: 900;
+  cursor: pointer;
+  text-transform: uppercase;
+}
+
+.hw-root .brutalBtn.armed {
+  background: var(--danger);
+  color: var(--bg);
+}
+
+/* STATUS PANEL */
+
+.hw-root .panel {
+  margin-top: 12px;
+  border: 2px solid var(--line);
+  padding: var(--pad);
+}
+
+.hw-root .panelRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px;
+}
+
+@media (max-width: 720px) {
+  .hw-root .panelRow {
+    grid-template-columns: 1fr;
+  }
+}
+
+.hw-root .statusBlock {
+  border: 2px solid var(--line);
+  padding: 10px;
+}
+
+.hw-root .statusLabel {
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.18em;
+}
+
+.hw-root .statusValue {
+  margin-top: 6px;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+/* LOCATION BAR */
+
+.hw-root .locBar {
+  margin-top: 12px;
+}
+
+.hw-root .locControls {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.hw-root .locInput {
+  flex: 1 1 320px;
+  min-width: 220px;
+  padding: 12px 12px;
+  border: 2px solid var(--hard);
+  background: transparent;
+  color: var(--fg);
+  text-transform: uppercase;
+}
+
+.hw-root .locBtn {
+  padding: 12px 14px;
+  border: 2px solid var(--hard);
+  background: var(--hard);
+  color: var(--bg);
+  font-weight: 900;
+  cursor: pointer;
+  text-transform: uppercase;
+}
+
+.hw-root .locBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.hw-root .locBtn.ghost {
+  background: transparent;
+  color: var(--fg);
+}
+
+.hw-root .locError {
+  margin-top: 10px;
+  padding: 10px;
+  border: 2px solid var(--danger);
+  color: var(--danger);
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+.hw-root .locResults {
+  margin-top: 10px;
+  border: 2px solid var(--line);
+}
+
+.hw-root .locResult {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 12px;
+  border: 0;
+  border-bottom: 2px solid var(--line);
+  background: transparent;
+  color: var(--fg);
+  cursor: pointer;
+}
+
+.hw-root .locResult:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.hw-root .locResult:last-child {
+  border-bottom: 0;
+}
+
+.hw-root .locResultMain {
+  display: block;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+}
+
+.hw-root .locResultSub {
+  display: block;
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* MAIN GRID */
+
+.hw-root .main {
+  margin-top: 12px;
+  display: grid;
+  gap: 12px;
+}
+
+@media (max-width: 768px) {
+  .hw-root .topbar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .hw-root .main {
+    grid-template-columns: 1fr; /* stacked layout on small screens */
+  }
+}
+
+/* WARNING STRIP */
+
+.hw-root .warnStrip {
+  border: 3px solid var(--danger);
+  background: var(--danger);
+  color: var(--bg);
+  padding: 14px;
+}
+
+.hw-root .warnBig {
+  font-size: 18px;
+  font-weight: 1000;
+  letter-spacing: 0.12em;
+}
+
+.hw-root .warnSmall {
+  margin-top: 8px;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+}
+
+/* TODAY PANEL */
+
+.hw-root .today {
+  border: 2px solid var(--hard);
+  padding: var(--pad);
+}
+
+.hw-root .todayTop {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.hw-root .todayTitle {
+  font-size: 13px;
+  color: var(--muted);
+  letter-spacing: 0.22em;
+  font-weight: 900;
+}
+
+.hw-root .todayBadges {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.hw-root .tinyBadge {
+  border: 2px solid var(--line);
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.hw-root .todayBig {
+  margin-top: 10px;
+  font-size: clamp(52px, 10vw, 92px);
+  font-weight: 1000;
+  letter-spacing: 0.04em;
+  line-height: 0.95;
+}
+
+.hw-root .todayUnit {
+  margin-left: 8px;
+  font-size: 20px;
+  color: var(--muted);
+  font-weight: 900;
+}
+
+.hw-root .todayMeta {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+  gap: 10px;
+}
+
+@media (max-width: 860px) {
+  .hw-root .todayMeta {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.hw-root .kv {
+  border: 2px solid var(--line);
+  padding: 10px;
+}
+
+.hw-root .k {
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.18em;
+  font-weight: 900;
+}
+
+.hw-root .v {
+  margin-top: 6px;
+  font-size: 14px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+}
+
+/* FORECAST GRID */
+
+.hw-root .gridWrap {
+  border: 2px solid var(--line);
+  padding: var(--pad);
+}
+
+.hw-root .gridTitle {
+  font-size: 13px;
+  color: var(--muted);
+  letter-spacing: 0.22em;
+  font-weight: 900;
+}
+
+.hw-root .grid {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 10px;
+  overflow-x: auto; /* strict columns; small screens scroll */
+  padding-bottom: 4px;
+}
+
+.hw-root .grid.dim {
+  opacity: 0.65;
+}
+
+.hw-root .col {
+  min-width: 170px;
+  border: 2px solid var(--hard);
+  padding: 12px;
+}
+
+.hw-root .colHead {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.hw-root .colDay {
+  font-weight: 1000;
+  letter-spacing: 0.1em;
+}
+
+.hw-root .colDate {
+  color: var(--muted);
+  font-weight: 900;
+}
+
+.hw-root .colWord {
+  margin-top: 12px;
+  font-size: 22px;
+  font-weight: 1000;
+  letter-spacing: 0.1em;
+  border-top: 2px solid var(--line);
+  padding-top: 12px;
+}
+
+.hw-root .colRow {
+  margin-top: 10px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.hw-root .chip {
+  border: 2px solid var(--line);
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 1000;
+  letter-spacing: 0.12em;
+}
+
+.hw-root .colTemps {
+  margin-top: 12px;
+  display: grid;
+  gap: 10px;
+}
+
+.hw-root .tLab {
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.18em;
+  font-weight: 900;
+}
+
+.hw-root .tVal {
+  margin-top: 6px;
+  font-size: 18px;
+  font-weight: 1000;
+  letter-spacing: 0.06em;
+}
+
+.hw-root .colMeta {
+  margin-top: 12px;
+  border-top: 2px solid var(--line);
+  padding-top: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.hw-root .metaRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.hw-root .metaK {
+  color: var(--muted);
+  font-weight: 900;
+  letter-spacing: 0.16em;
+}
+
+.hw-root .metaV {
+  font-weight: 1000;
+  letter-spacing: 0.1em;
+}
+
+/* FOOTER */
+
+.hw-root .footer {
+  margin-top: 14px;
+  padding: 10px 0;
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.hw-root .dot {
+  opacity: 0.6;
+}

@@ -8,6 +8,7 @@ import UserMenu from "./components/UserMenu";
 import { isOverdue } from "./utils/taskUtils";
 import { getTodayISO } from "./utils/dateUtils";
 import { supabase } from "./supabaseClient";
+import HarshWeatherApp from "./harsh-weather/HarshWeatherApp";
 
 const COLUMNS = [
   { id: "today", label: "TODAY" },
@@ -26,6 +27,8 @@ export default function App() {
   const [tasksLoading, setTasksLoading] = useState(false);
   const [tasksError, setTasksError] = useState("");
   const [pendingDelete, setPendingDelete] = useState(null);
+
+  const [activePanel, setActivePanel] = useState("board"); // 'board' | 'weather'
 
   // ---- AUTH STATE ----
   useEffect(() => {
@@ -330,32 +333,67 @@ export default function App() {
         </div>
       </header>
 
-      <main className="app-main">
-        <section className="board">
-          {tasksLoading && (
-            <div className="board-status-strip">
-              SYNCING WITH MACHINE STORAGE...
-            </div>
-          )}
-          {tasksError && <div className="board-error-strip">{tasksError}</div>}
+      {/* NEW: brutalist panel switch */}
+      <div className="panel-switch">
+        <button
+          type="button"
+          className={
+            activePanel === "board"
+              ? "panel-switch-button panel-switch-button-active"
+              : "panel-switch-button"
+          }
+          onClick={() => setActivePanel("board")}
+        >
+          TASK BOARD
+        </button>
+        <button
+          type="button"
+          className={
+            activePanel === "weather"
+              ? "panel-switch-button panel-switch-button-active"
+              : "panel-switch-button"
+          }
+          onClick={() => setActivePanel("weather")}
+        >
+          WEATHER
+        </button>
+      </div>
 
-          {COLUMNS.map((col) => (
-            <TaskColumn
-              key={col.id}
-              column={col}
-              tasks={tasks.filter((t) => t.column === col.id)}
-              onAddTask={addTask}
-              onMoveTask={moveTask}
-              onToggleDone={toggleDone}
-              onRequestDelete={requestDelete}
-            />
-          ))}
-        </section>
+      {/* CONDITIONAL MAIN CONTENT */}
+      {activePanel === "board" ? (
+        <main className="app-main">
+          <section className="board">
+            {tasksLoading && (
+              <div className="board-status-strip">
+                SYNCING WITH MACHINE STORAGE...
+              </div>
+            )}
+            {tasksError && (
+              <div className="board-error-strip">{tasksError}</div>
+            )}
 
-        <aside className="timer-panel-wrapper">
-          <TimerPanel />
-        </aside>
-      </main>
+            {COLUMNS.map((col) => (
+              <TaskColumn
+                key={col.id}
+                column={col}
+                tasks={tasks.filter((t) => t.column === col.id)}
+                onAddTask={addTask}
+                onMoveTask={moveTask}
+                onToggleDone={toggleDone}
+                onRequestDelete={requestDelete}
+              />
+            ))}
+          </section>
+
+          <aside className="timer-panel-wrapper">
+            <TimerPanel />
+          </aside>
+        </main>
+      ) : (
+        <main className="app-main-weather">       
+            <HarshWeatherApp />
+        </main>
+      )}
 
       {pendingDelete && (
         <DeleteModal

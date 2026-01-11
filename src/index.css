@@ -899,7 +899,7 @@ body {
   align-items: center;
 }
 
-/* USER MENU */
+/* ---------- USER MENU ---------- */
 
 .user-menu {
   position: relative;
@@ -961,4 +961,51 @@ body {
   padding: 4px 6px;
   text-transform: uppercase;
   cursor: pointer;
+}
+
+/* --------- PANEL SWITCH (BOARD / WEATHER) --------- */
+
+.panel-switch {
+  margin-top: 4px;
+  margin-bottom: 4px;
+  border: 2px solid var(--border-strong);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  background: #000000;
+}
+
+.panel-switch-button {
+  border: none;
+  background: #000000;
+  color: var(--text);
+  padding: 6px 4px;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.16em;
+  cursor: pointer;
+  border-right: 2px solid var(--border-strong);
+}
+
+.panel-switch-button:last-child {
+  border-right: none;
+}
+
+.panel-switch-button-active {
+  background: var(--accent);
+  color: #000000;
+}
+
+/* Make the weather panel reuse the harsh grid but full width */
+.app-main-weather {
+  flex: 1;
+  min-height: 0;
+  border: 2px solid var(--border-strong);
+  background: #000000;
+  padding: 0;
+  overflow: auto;
+  display: block;
+}
+
+.board-weather {
+  border-color: var(--border-strong);
 }
