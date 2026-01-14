@@ -970,7 +970,7 @@ body {
   margin-bottom: 4px;
   border: 2px solid var(--border-strong);
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
   background: #000000;
 }
 
@@ -1008,4 +1008,13 @@ body {
 
 .board-weather {
   border-color: var(--border-strong);
+}
+
+.app-main-budget {
+  flex: 1;
+  min-height: 0;
+  border: 2px solid var(--border-strong);
+  background: #000000;
+  padding: 0;
+  overflow: auto;
 }

@@ -9,6 +9,7 @@ import { isOverdue } from "./utils/taskUtils";
 import { getTodayISO } from "./utils/dateUtils";
 import { supabase } from "./supabaseClient";
 import HarshWeatherApp from "./harsh-weather/HarshWeatherApp";
+import BlockBudgetApp from "./block-budget/BlockBudgetApp";
 
 const COLUMNS = [
   { id: "today", label: "TODAY" },
@@ -28,7 +29,7 @@ export default function App() {
   const [tasksError, setTasksError] = useState("");
   const [pendingDelete, setPendingDelete] = useState(null);
 
-  const [activePanel, setActivePanel] = useState("board"); // 'board' | 'weather'
+  const [activePanel, setActivePanel] = useState("board"); // 'board' | 'weather' | 'budget'
 
   // ---- AUTH STATE ----
   useEffect(() => {
@@ -357,6 +358,17 @@ export default function App() {
         >
           WEATHER
         </button>
+        <button
+          type="button"
+          className={
+            activePanel === "budget"
+              ? "panel-switch-button panel-switch-button-active"
+              : "panel-switch-button"
+          }
+          onClick={() => setActivePanel("budget")}
+        >
+          BUDGET
+        </button>
       </div>
 
       {/* CONDITIONAL MAIN CONTENT */}
@@ -389,9 +401,13 @@ export default function App() {
             <TimerPanel />
           </aside>
         </main>
+      ) : activePanel === "weather" ? (
+        <main className="app-main-weather">
+          <HarshWeatherApp />
+        </main>
       ) : (
-        <main className="app-main-weather">       
-            <HarshWeatherApp />
+        <main className="app-main-budget">
+          <BlockBudgetApp />
         </main>
       )}
 
