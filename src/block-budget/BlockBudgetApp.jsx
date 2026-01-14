@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import "./blockBudget.css";
-import { supabase } from "../lib/supabaseClient"; // adjust path if needed
+import { supabase } from "../supabaseClient"; // adjust path if needed
 import { getMonthExpenses, analyzeBudget } from "./budgetAnalysis";
 import BBHeader from "./components/BBHeader";
 import BBSummaryRow from "./components/BBSummaryRow";
