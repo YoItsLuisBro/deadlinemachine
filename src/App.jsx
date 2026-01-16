@@ -357,17 +357,6 @@ export default function App() {
         >
           WEATHER
         </button>
-        <button
-          type="button"
-          className={
-            activePanel === "budget"
-              ? "panel-switch-button panel-switch-button-active"
-              : "panel-switch-button"
-          }
-          onClick={() => setActivePanel("budget")}
-        >
-          BUDGET
-        </button>
       </div>
 
       {/* CONDITIONAL MAIN CONTENT */}
