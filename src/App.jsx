@@ -9,7 +9,6 @@ import { isOverdue } from "./utils/taskUtils";
 import { getTodayISO } from "./utils/dateUtils";
 import { supabase } from "./supabaseClient";
 import HarshWeatherApp from "./harsh-weather/HarshWeatherApp";
-import BlockBudgetApp from "./block-budget/BlockBudgetApp";
 
 const COLUMNS = [
   { id: "today", label: "TODAY" },
