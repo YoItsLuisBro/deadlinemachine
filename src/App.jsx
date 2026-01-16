@@ -401,13 +401,9 @@ export default function App() {
             <TimerPanel />
           </aside>
         </main>
-      ) : activePanel === "weather" ? (
+      ) : (
         <main className="app-main-weather">
           <HarshWeatherApp />
-        </main>
-      ) : (
-        <main className="app-main-budget">
-          <BlockBudgetApp />
         </main>
       )}
 
